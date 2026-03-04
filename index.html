@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CryptoGuard — Verifiable AI Risk Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ── Reset & Variables ─────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #080c10;
+    --surface:   #0d1420;
+    --surface2:  #111d2e;
+    --border:    #1a2d42;
+    --accent:    #00d4aa;
+    --accent2:   #0088ff;
+    --warn:      #f59e0b;
+    --danger:    #ef4444;
+    --text:      #e2eaf4;
+    --muted:     #5a7a99;
+    --font-mono: 'Space Mono', monospace;
+    --font-sans: 'Syne', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Grid noise background ─────────────────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(0,212,170,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,170,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* ── Layout ────────────────────────────────────────────────────── */
+  .app { position: relative; z-index: 1; max-width: 1440px; margin: 0 auto; padding: 0 24px 80px; }
+
+  /* ── Header ────────────────────────────────────────────────────── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 24px 0 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .logo-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 0 20px rgba(0,212,170,0.3);
+  }
+
+  .logo h1 {
+    font-size: 22px; font-weight: 800; letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #e2eaf4 60%, var(--accent));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  .logo span {
+    font-size: 11px; font-weight: 400; letter-spacing: 2px;
+    color: var(--muted); text-transform: uppercase;
+    font-family: var(--font-mono);
+    display: block; margin-top: 2px;
+  }
+
+  .header-right { display: flex; align-items: center; gap: 16px; }
+
+  .status-pill {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 14px; border-radius: 100px;
+    border: 1px solid var(--border);
+    font-size: 12px; font-family: var(--font-mono);
+    color: var(--muted);
+  }
+
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--muted);
+    animation: pulse 2s infinite;
+  }
+  .status-dot.live { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  .status-dot.error { background: var(--danger); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── Wallet Button ─────────────────────────────────────────────── */
+
+  /* ── Network badge ─────────────────────────────────────────────── */
+  .network-badge {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 10px; border-radius: 100px;
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+    font-size: 11px; font-family: var(--font-mono); color: #ef4444;
+    display: none;
+  }
+  .network-badge.show { display: flex; }
+
+  /* ── Wallet Info Panel ─────────────────────────────────────────── */
+
+  /* ── Stat Cards Row ────────────────────────────────────────────── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .stat-card:hover { border-color: rgba(0,212,170,0.3); transform: translateY(-2px); }
+
+  .stat-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    opacity: 0.6;
+  }
+
+  .stat-label {
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); font-family: var(--font-mono);
+    margin-bottom: 10px;
+  }
+
+  .stat-value {
+    font-size: 28px; font-weight: 800;
+    background: linear-gradient(135deg, #e2eaf4, #8ab4d4);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  .stat-sub {
+    font-size: 13px; margin-top: 4px; font-family: var(--font-mono);
+  }
+
+  .positive { color: var(--accent) !important; }
+  .negative { color: var(--danger) !important; }
+
+  /* ── Main Grid ─────────────────────────────────────────────────── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  /* ── Panel ─────────────────────────────────────────────────────── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-title {
+    font-size: 14px; font-weight: 700; letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .panel-title .icon { font-size: 16px; }
+
+  /* ── Holdings Table ────────────────────────────────────────────── */
+  .holdings-table { width: 100%; }
+
+  .holding-row {
+    display: grid;
+    grid-template-columns: 200px 1fr 1fr 1fr 1fr 120px 100px;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(26,45,66,0.5);
+    cursor: pointer;
+    transition: background 0.15s;
+    gap: 8px;
+  }
+  .holding-row:hover { background: rgba(0,212,170,0.04); }
+  .holding-row:last-child { border-bottom: none; }
+
+  .th-row {
+    background: var(--surface2);
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); font-family: var(--font-mono);
+    cursor: default;
+  }
+  .th-row:hover { background: var(--surface2); }
+
+  .token-info { display: flex; align-items: center; gap: 10px; }
+
+  .token-logo {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-family: var(--font-mono);
+    flex-shrink: 0;
+  }
+
+  .token-name { font-weight: 700; font-size: 14px; }
+  .token-amount { font-size: 12px; color: var(--muted); font-family: var(--font-mono); margin-top: 2px; }
+
+  .cell { font-size: 13px; font-family: var(--font-mono); }
+  .cell-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  .risk-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 100px;
+    font-size: 11px; font-weight: 700; font-family: var(--font-mono);
+    letter-spacing: 1px;
+    border: 1px solid;
+  }
+
+  .risk-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  .verify-btn {
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 8px;
+    font-size: 11px; font-family: var(--font-mono); font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+  }
+  .verify-btn:hover { background: rgba(0,212,170,0.1); box-shadow: 0 0 12px rgba(0,212,170,0.2); }
+  .verify-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .verify-btn.verified { border-color: var(--muted); color: var(--muted); }
+
+  /* ── Right Panel — AI Chat ─────────────────────────────────────── */
+  .chat-panel {
+    display: flex; flex-direction: column;
+    height: 600px;
+  }
+
+  .chat-messages {
+    flex: 1; overflow-y: auto; padding: 20px;
+    display: flex; flex-direction: column; gap: 12px;
+    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  }
+
+  .msg {
+    padding: 12px 16px; border-radius: 12px;
+    font-size: 13px; line-height: 1.6;
+    animation: fadeUp 0.3s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg-system {
+    background: rgba(0,136,255,0.08);
+    border: 1px solid rgba(0,136,255,0.2);
+    color: #8ab4d4;
+    font-family: var(--font-mono);
+  }
+
+  .msg-ai {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .msg-proof {
+    background: rgba(0,212,170,0.06);
+    border: 1px solid rgba(0,212,170,0.2);
+    font-family: var(--font-mono);
+    font-size: 11px; color: var(--accent);
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+
+  .msg-proof .proof-icon { font-size: 14px; flex-shrink: 0; }
+
+  .chat-input-area {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+
+  .quick-prompts {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+
+  .quick-btn {
+    padding: 5px 10px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--muted); border-radius: 6px;
+    font-size: 11px; cursor: pointer; font-family: var(--font-mono);
+    transition: all 0.15s;
+  }
+  .quick-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .input-row { display: flex; gap: 8px; }
+
+  .chat-input {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 10px;
+    padding: 10px 14px; font-family: var(--font-sans); font-size: 13px;
+    outline: none; resize: none; height: 44px;
+    transition: border-color 0.2s;
+  }
+  .chat-input:focus { border-color: var(--accent); }
+
+  .send-btn {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 10px;
+    color: #080c10; font-weight: 700; font-size: 13px;
+    cursor: pointer; transition: opacity 0.2s, transform 0.1s;
+    white-space: nowrap;
+  }
+  .send-btn:hover { opacity: 0.9; transform: scale(1.02); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── Audit Log ─────────────────────────────────────────────────── */
+  .audit-panel { margin-top: 0; }
+
+  .audit-entry {
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 16px 24px; border-bottom: 1px solid rgba(26,45,66,0.5);
+    transition: background 0.15s;
+  }
+  .audit-entry:hover { background: rgba(0,212,170,0.03); }
+  .audit-entry:last-child { border-bottom: none; }
+
+  .audit-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: rgba(0,212,170,0.1); border: 1px solid rgba(0,212,170,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0; margin-top: 2px;
+  }
+
+  .audit-content { flex: 1; min-width: 0; }
+  .audit-action { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .audit-meta { display: flex; gap: 12px; font-size: 11px; font-family: var(--font-mono); color: var(--muted); }
+
+  .audit-hash {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--accent); opacity: 0.8;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 280px;
+    margin-top: 3px;
+  }
+
+  .audit-badge {
+    padding: 2px 8px; border-radius: 4px; font-size: 10px;
+    font-family: var(--font-mono); font-weight: 700; letter-spacing: 1px;
+    background: rgba(0,212,170,0.1); color: var(--accent);
+    border: 1px solid rgba(0,212,170,0.2);
+    flex-shrink: 0;
+  }
+
+  /* ── Proof Modal ───────────────────────────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(8,12,16,0.85);
+    backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    max-width: 580px; width: 90%;
+    transform: translateY(20px);
+    transition: transform 0.2s;
+    position: relative;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-close {
+    position: absolute; top: 16px; right: 16px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--muted); border-radius: 8px;
+    width: 32px; height: 32px; cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-close:hover { color: var(--text); }
+
+  .modal-title {
+    font-size: 20px; font-weight: 800; margin-bottom: 6px;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .modal-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
+  .proof-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin-bottom: 20px;
+  }
+
+  .proof-item {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .proof-item-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-family: var(--font-mono); margin-bottom: 6px; }
+  .proof-item-value { font-size: 18px; font-weight: 700; }
+
+  .tx-box {
+    background: var(--surface2); border: 1px solid rgba(0,212,170,0.3);
+    border-radius: 12px; padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .tx-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-family: var(--font-mono); margin-bottom: 6px; }
+  .tx-hash { font-family: var(--font-mono); font-size: 12px; color: var(--accent); word-break: break-all; }
+
+  .explorer-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 20px;
+    background: rgba(0,212,170,0.1);
+    border: 1px solid rgba(0,212,170,0.3);
+    border-radius: 10px; color: var(--accent);
+    text-decoration: none; font-size: 13px; font-weight: 600;
+    transition: all 0.2s;
+  }
+  .explorer-link:hover { background: rgba(0,212,170,0.2); }
+
+  /* ── Sparkline canvas ──────────────────────────────────────────── */
+  .sparkline-cell { display: flex; align-items: center; }
+
+  /* ── Loading skeleton ──────────────────────────────────────────── */
+  .skeleton {
+    background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px;
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  /* ── Typing indicator ──────────────────────────────────────────── */
+  .typing { display: flex; gap: 4px; padding: 4px 0; }
+  .typing span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--muted); animation: bounce 1.2s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+  /* ── Bottom row ────────────────────────────────────────────────── */
+  .bottom-row {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 24px; margin-top: 24px;
+  }
+
+  /* ── Scrollbar ─────────────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── Responsive ────────────────────────────────────────────────── */
+  @media (max-width: 1100px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .chat-panel { height: 500px; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .holding-row { grid-template-columns: 160px 1fr 1fr 1fr 80px; }
+    .holding-row > *:nth-child(4),
+    .holding-row > *:nth-child(5) { display: none; }
+  }
+  @media (max-width: 700px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .bottom-row { grid-template-columns: 1fr; }
+    .holding-row { grid-template-columns: 140px 1fr 1fr 70px; }
+    .holding-row > *:nth-child(3) { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Header ────────────────────────────────────────────────── -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🛡️</div>
+      <div>
+        <h1>CryptoGuard</h1>
+        <span>Verifiable AI Risk Dashboard</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-pill">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Connecting…</span>
+      </div>
+      <div class="status-pill" style="color:var(--accent); border-color:rgba(0,212,170,0.3);">
+        ⛓️ &nbsp;OpenGradient TEE
+      </div>
+
+    </div>
+  </header>
+
+
+  <!-- ── Stat Cards ─────────────────────────────────────────────── -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card"><div class="stat-label">Total Portfolio Value</div><div class="stat-value" id="totalValue">—</div><div class="stat-sub" id="totalPnl">Loading…</div></div>
+    <div class="stat-card"><div class="stat-label">On-Chain Verifications</div><div class="stat-value" id="verifyCount">0</div><div class="stat-sub" style="color:var(--muted)">tx hashes recorded</div></div>
+    <div class="stat-card"><div class="stat-label">Highest Risk Asset</div><div class="stat-value" id="highRisk" style="font-size:22px">—</div><div class="stat-sub" id="highRiskVol">—</div></div>
+    <div class="stat-card"><div class="stat-label">Portfolio Sharpe Ratio</div><div class="stat-value" id="avgSharpe">—</div><div class="stat-sub" style="color:var(--muted)">risk-adjusted return</div></div>
+  </div>
+
+  <!-- ── Main Grid ──────────────────────────────────────────────── -->
+  <div class="main-grid">
+
+    <!-- Holdings -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><span class="icon">📊</span> Holdings &amp; Risk Metrics</div>
+        <button onclick="verifyAll()" style="padding:7px 14px;background:rgba(0,212,170,0.1);border:1px solid rgba(0,212,170,0.3);color:var(--accent);border-radius:8px;font-size:12px;font-family:var(--font-mono);cursor:pointer;font-weight:700;" id="verifyAllBtn">
+          ⛓ VERIFY ALL ON-CHAIN
+        </button>
+      </div>
+      <div>
+        <div class="holding-row th-row">
+          <div>Asset</div><div>Value / P&amp;L</div><div>Volatility</div><div>Daily VaR 95%</div><div>Sharpe</div><div>Risk Level</div><div>Verify</div>
+        </div>
+        <div id="holdingsBody"></div>
+      </div>
+    </div>
+
+    <!-- AI Chat -->
+    <div class="panel chat-panel">
+      <div class="panel-header">
+        <div class="panel-title"><span class="icon">🤖</span> AI Risk Analyst</div>
+        <span style="font-size:11px;color:var(--muted);font-family:var(--font-mono);">TEE-Verified</span>
+      </div>
+      <div class="chat-messages" id="chatMessages">
+        <div class="msg msg-system">
+          👋 Welcome to CryptoGuard. Every AI response is executed inside a <strong>Trusted Execution Environment</strong> and settled on-chain via x402. Ask me anything about your portfolio risk.
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <div class="quick-prompts">
+          <button class="quick-btn" onclick="quickPrompt('What is my highest risk position?')">🔥 Highest risk</button>
+          <button class="quick-btn" onclick="quickPrompt('Should I rebalance my portfolio?')">⚖️ Rebalance</button>
+          <button class="quick-btn" onclick="quickPrompt('What is my total Value at Risk?')">📉 VaR analysis</button>
+          <button class="quick-btn" onclick="quickPrompt('Give me a market outlook for my holdings.')">🔭 Outlook</button>
+        </div>
+        <div class="input-row">
+          <textarea class="chat-input" id="chatInput" placeholder="Ask about risk, volatility, rebalancing…" rows="1"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+          <button class="send-btn" onclick="sendMessage()" id="sendBtn">Send ↗</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Bottom Row ─────────────────────────────────────────────── -->
+  <div class="bottom-row">
+
+    <!-- Allocation chart -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><span class="icon">🥧</span> Portfolio Allocation</div>
+      </div>
+      <div style="padding:24px; display:flex; align-items:center; gap:32px;" id="allocationArea">
+        <canvas id="allocCanvas" width="180" height="180"></canvas>
+        <div id="allocLegend" style="flex:1;display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+    </div>
+
+    <!-- Audit log -->
+    <div class="panel audit-panel">
+      <div class="panel-header">
+        <div class="panel-title"><span class="icon">📋</span> On-Chain Audit Log</div>
+        <span style="font-size:11px;font-family:var(--font-mono);color:var(--muted);">immutable proofs</span>
+      </div>
+      <div id="auditLog"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Proof Modal ──────────────────────────────────────────────── -->
+<div class="modal-overlay" id="proofModal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title" id="modalTitle">⛓️ On-Chain Proof</div>
+    <div class="modal-subtitle" id="modalSubtitle">Volatility verified by ONNX model on OpenGradient blockchain</div>
+    <div class="proof-grid" id="proofGrid"></div>
+    <div class="tx-box">
+      <div class="tx-label">Transaction Hash (cryptographic proof)</div>
+      <div class="tx-hash" id="modalTxHash">—</div>
+    </div>
+    <a href="#" id="explorerLink" class="explorer-link" target="_blank">🔍 View on OpenGradient Explorer ↗</a>
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────
+let portfolio = null;
+let verifyCount = 0;
+let verifiedData = {};
+
+// ── Networks ───────────────────────────────────────────────────────────────
+const NETWORKS = {
+  '0x1':     'Ethereum Mainnet',
+  '0xaa36a7':'Sepolia Testnet',
+  '0x89':    'Polygon',
+  '0x38':    'BNB Chain',
+  '0xa':     'Optimism',
+  '0x2105':  'Base',
+  '0x14a34': 'Base Sepolia',
+};
+
+
+// ── App Init ───────────────────────────────────────────────────────────────
+async function init() {
+  await checkStatus();
+  await loadPortfolio();
+  await loadAuditLog();
+}
+
+async function checkStatus() {
+  try {
+    const res = await fetch('/api/status');
+    const data = await res.json();
+    const dot = document.getElementById('statusDot');
+    const text = document.getElementById('statusText');
+    if (data.ok) {
+      dot.className = 'status-dot live';
+      text.textContent = 'OpenGradient Connected';
+    } else {
+      dot.className = 'status-dot error';
+      text.textContent = data.key_set ? 'Init Error' : 'No API Key';
+    }
+  } catch(e) {
+    document.getElementById('statusDot').className = 'status-dot error';
+    document.getElementById('statusText').textContent = 'Backend Offline';
+  }
+}
+
+async function loadPortfolio() {
+  const res = await fetch('/api/portfolio');
+  portfolio = await res.json();
+
+  document.getElementById('totalValue').textContent = '$' + fmtNum(portfolio.total_value);
+  const pnlEl = document.getElementById('totalPnl');
+  const pnl = portfolio.total_pnl;
+  pnlEl.textContent = (pnl >= 0 ? '+' : '') + '$' + fmtNum(Math.abs(pnl)) + ' (' + (portfolio.total_pnl_pct >= 0 ? '+' : '') + portfolio.total_pnl_pct + '%)';
+  pnlEl.className = 'stat-sub ' + (pnl >= 0 ? 'positive' : 'negative');
+
+  const worst = portfolio.holdings.reduce(function(a, b) {
+    return a.ann_volatility > b.ann_volatility ? a : b;
+  });
+  document.getElementById('highRisk').textContent = worst.token;
+  document.getElementById('highRiskVol').innerHTML = '<span style="color:' + worst.risk_color + '">' + worst.risk_label + ' - ' + (worst.ann_volatility * 100).toFixed(1) + '% ann.vol</span>';
+
+  const avgSharpe = portfolio.holdings.reduce(function(s, h) { return s + h.sharpe_ratio; }, 0) / portfolio.holdings.length;
+  document.getElementById('avgSharpe').textContent = avgSharpe.toFixed(2);
+
+  renderHoldings();
+  renderAllocationChart();
+}
+
+function renderHoldings() {
+  const body = document.getElementById('holdingsBody');
+  body.innerHTML = portfolio.holdings.map(function(h) {
+    const vd = verifiedData[h.token];
+    const vol = vd ? vd.on_chain_volatility : h.ann_volatility;
+    const varVal = vd ? vd.daily_var_95 : h.daily_var_95;
+    const label = vd ? vd.risk_label : h.risk_label;
+    const color = vd ? vd.risk_color : h.risk_color;
+    const isVerified = !!vd;
+
+    return '<div class="holding-row" onclick="focusToken(\'' + h.token + '\')">' +
+      '<div class="token-info">' +
+        '<div class="token-logo">' + h.logo + '</div>' +
+        '<div>' +
+          '<div class="token-name">' + h.token + '</div>' +
+          '<div class="token-amount">' + h.amount + ' tokens</div>' +
+        '</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="cell">$' + fmtNum(h.position_value) + '</div>' +
+        '<div class="cell-label" style="color:' + (h.pnl >= 0 ? 'var(--accent)' : 'var(--danger)') + '">' +
+          (h.pnl >= 0 ? '+' : '') + '$' + fmtNum(Math.abs(h.pnl)) + ' (' + (h.pnl_pct >= 0 ? '+' : '') + h.pnl_pct + '%)' +
+        '</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="cell">' + (vol * 100).toFixed(1) + '%</div>' +
+        '<div class="cell-label">' + (isVerified ? 'on-chain' : 'local calc') + '</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="cell">$' + fmtNum(varVal) + '/day</div>' +
+        '<div class="cell-label">95% confidence</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="cell">' + h.sharpe_ratio.toFixed(2) + '</div>' +
+        '<div class="cell-label">annualized</div>' +
+      '</div>' +
+      '<div>' +
+        '<span class="risk-badge" style="color:' + color + ';border-color:' + color + '22;background:' + color + '11;">' +
+          '<span class="risk-dot" style="background:' + color + '"></span>' + label +
+        '</span>' +
+      '</div>' +
+      '<div>' +
+        (isVerified
+          ? '<button class="verify-btn verified" onclick="event.stopPropagation();showProof(\'' + h.token + '\')">PROOF</button>'
+          : '<button class="verify-btn" id="vbtn-' + h.token + '" onclick="event.stopPropagation();verifyToken(\'' + h.token + '\', this)">VERIFY</button>'
+        ) +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderAllocationChart() {
+  const canvas = document.getElementById('allocCanvas');
+  const ctx = canvas.getContext('2d');
+  const total = portfolio.total_value;
+  const colors = ['#00d4aa', '#0088ff', '#f59e0b', '#a855f7', '#ef4444'];
+  let start = -Math.PI / 2;
+  const legend = document.getElementById('allocLegend');
+  legend.innerHTML = '';
+
+  portfolio.holdings.forEach(function(h, i) {
+    const pct = h.position_value / total;
+    const end = start + pct * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(90, 90);
+    ctx.arc(90, 90, 80, start, end);
+    ctx.closePath();
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fill();
+    start = end + 0.02;
+
+    legend.innerHTML += '<div style="display:flex;align-items:center;gap:8px;">' +
+      '<div style="width:10px;height:10px;border-radius:3px;background:' + colors[i % colors.length] + ';flex-shrink:0;"></div>' +
+      '<div style="flex:1;"><span style="font-size:13px;font-weight:700;">' + h.token + '</span>' +
+      '<span style="font-size:12px;color:var(--muted);font-family:var(--font-mono);margin-left:6px;">' + (pct * 100).toFixed(1) + '%</span></div>' +
+      '<div style="font-size:12px;font-family:var(--font-mono);color:var(--muted);">$' + fmtNum(h.position_value) + '</div>' +
+      '</div>';
+  });
+
+  ctx.beginPath();
+  ctx.arc(90, 90, 45, 0, Math.PI * 2);
+  ctx.fillStyle = '#0d1420';
+  ctx.fill();
+  ctx.fillStyle = '#e2eaf4';
+  ctx.font = 'bold 13px Syne, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('$' + fmtK(total), 90, 88);
+  ctx.fillStyle = '#5a7a99';
+  ctx.font = '10px Space Mono, monospace';
+  ctx.fillText('TOTAL', 90, 102);
+}
+
+
+async function verifyToken(token, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  addChatMessage('system', 'Requesting on-chain TEE verification for ' + token + '...');
+
+  try {
+    addChatMessage('system', '⛓ Submitting to OpenGradient TEE network...');
+    const res = await fetch('/api/verify/' + token);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Verification failed');
+    }
+    const d = await res.json();
+
+    const verifiedEntry = {
+      token: token,
+      on_chain_volatility: d.on_chain_volatility,
+      on_chain_std: d.on_chain_std,
+      daily_var_95: d.daily_var_95,
+      risk_label: d.risk_label,
+      risk_color: d.risk_color,
+      transaction_hash: d.transaction_hash,
+      explorer_url: d.explorer_url,
+      verified: true,
+      proof_type: d.proof_type || 'TEE-LLM SETTLE_METADATA',
+      timestamp: d.timestamp,
+    };
+
+    verifiedData[token] = verifiedEntry;
+    verifyCount++;
+    document.getElementById('verifyCount').textContent = verifyCount;
+    renderHoldings();
+    showProof(token);
+
+    addAuditEntry({
+      action: token + ' — TEE Verification (on-chain)',
+      tx_hash: d.transaction_hash,
+      model: 'GPT-4.1 (TEE)',
+      settlement: 'SETTLE_METADATA',
+      timestamp: d.timestamp,
+    });
+
+    addChatMessage('proof',
+      token + ' verified on-chain!\n' +
+      'Volatility: ' + (d.on_chain_volatility * 100).toFixed(2) + '%  |  Risk: ' + d.risk_label + '\n' +
+      'Proof: ' + d.proof_type + '\n' +
+      'Tx: ' + d.transaction_hash.substring(0, 22) + '...'
+    );
+
+  } catch(e) {
+    addChatMessage('system', '❌ Verification failed: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'VERIFY'; }
+  }
+}
+
+async function verifyAll() {
+  const btn = document.getElementById('verifyAllBtn');
+  btn.disabled = true;
+  for (let i = 0; i < portfolio.holdings.length; i++) {
+    const h = portfolio.holdings[i];
+    if (!verifiedData[h.token]) {
+      await verifyToken(h.token, null);
+      await sleep(500);
+    }
+  }
+  btn.disabled = false;
+}
+
+function showProof(token) {
+  const d = verifiedData[token];
+  if (!d) return;
+  document.getElementById('modalTitle').innerHTML = 'On-Chain Proof - ' + token;
+  document.getElementById('modalSubtitle').textContent = 'ONNX Volatility Model executed on OpenGradient blockchain.';
+  document.getElementById('proofGrid').innerHTML =
+    '<div class="proof-item"><div class="proof-item-label">Annualized Volatility</div><div class="proof-item-value" style="color:' + d.risk_color + '">' + (d.on_chain_volatility * 100).toFixed(2) + '%</div></div>' +
+    '<div class="proof-item"><div class="proof-item-label">Daily VaR (95%)</div><div class="proof-item-value">$' + fmtNum(d.daily_var_95) + '</div></div>' +
+    '<div class="proof-item"><div class="proof-item-label">Risk Level</div><div class="proof-item-value" style="color:' + d.risk_color + '">' + d.risk_label + '</div></div>' +
+    '<div class="proof-item"><div class="proof-item-label">Std Dev (raw)</div><div class="proof-item-value">' + d.on_chain_std + '</div></div>';
+  document.getElementById('modalTxHash').textContent = d.transaction_hash;
+  const link = document.getElementById('explorerLink');
+  link.href = d.explorer_url;
+  document.getElementById('proofModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('proofModal').classList.remove('open');
+}
+
+// ── AI Chat ────────────────────────────────────────────────────────────────
+function focusToken(token) {
+  document.getElementById('chatInput').value = 'Analyze the risk for ' + token + ' in detail.';
+}
+
+function quickPrompt(text) {
+  document.getElementById('chatInput').value = text;
+  sendMessage();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const question = input.value.trim();
+  if (!question) return;
+
+  input.value = '';
+  addChatMessage('user', question);
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+
+  const typingId = 'typing-' + Date.now();
+  addTypingIndicator(typingId);
+
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: question }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Request failed: ' + res.status);
+    }
+
+    removeTypingIndicator(typingId);
+    const msgId = 'msg-' + Date.now();
+    const msgEl = addChatMessage('ai', '', msgId);
+
+    // SSE streaming
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let paymentHash = null;
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const ev = JSON.parse(line.slice(6));
+          if (ev.type === 'token') {
+            msgEl.textContent += ev.content;
+            scrollChat();
+          } else if (ev.type === 'done') {
+            paymentHash = ev.payment_hash;
+          } else if (ev.type === 'error') {
+            throw new Error(ev.message);
+          }
+        } catch(parseErr) {}
+      }
+    }
+
+    if (paymentHash) {
+      addChatMessage('proof',
+        'TEE-Verified Response\n' +
+        'Settlement: SETTLE_BATCH (on-chain)\n' +
+        'Tx: ' + paymentHash.substring(0, 24) + '...'
+      );
+      addAuditEntry({
+        action: 'AI Chat — TEE LLM',
+        tx_hash: paymentHash,
+        model: 'GPT-4.1 (TEE)',
+        settlement: 'SETTLE_BATCH',
+        timestamp: Math.floor(Date.now() / 1000),
+      });
+    }
+
+  } catch(e) {
+    removeTypingIndicator(typingId);
+    addChatMessage('system', '❌ ' + e.message);
+  }
+  btn.disabled = false;
+}
+
+function addChatMessage(type, text, id) {
+  const container = document.getElementById('chatMessages');
+  const el = document.createElement('div');
+  if (id) el.id = id;
+  if (type === 'user') {
+    el.className = 'msg';
+    el.style.cssText = 'background:rgba(0,136,255,0.1);border:1px solid rgba(0,136,255,0.2);color:#8ab4d4;text-align:right;';
+    el.textContent = text;
+  } else if (type === 'ai') {
+    el.className = 'msg msg-ai';
+    el.style.whiteSpace = 'pre-wrap';
+    el.textContent = text;
+  } else if (type === 'proof') {
+    el.className = 'msg msg-proof';
+    el.innerHTML = '<span class="proof-icon">on-chain</span><span style="white-space:pre-line;">' + text + '</span>';
+  } else {
+    el.className = 'msg msg-system';
+    el.innerHTML = text;
+  }
+  container.appendChild(el);
+  scrollChat();
+  return el;
+}
+
+function addTypingIndicator(id) {
+  const container = document.getElementById('chatMessages');
+  const el = document.createElement('div');
+  el.id = id;
+  el.className = 'msg msg-ai';
+  el.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+  container.appendChild(el);
+  scrollChat();
+}
+
+function removeTypingIndicator(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function scrollChat() {
+  const c = document.getElementById('chatMessages');
+  c.scrollTop = c.scrollHeight;
+}
+
+// ── Audit Log ──────────────────────────────────────────────────────────────
+async function loadAuditLog() {
+  const res = await fetch('/api/audit-log');
+  const data = await res.json();
+  data.entries.forEach(function(e) { addAuditEntry(e); });
+}
+
+function addAuditEntry(entry) {
+  const log = document.getElementById('auditLog');
+  const el = document.createElement('div');
+  el.className = 'audit-entry';
+  const ago = fmtAgo(entry.timestamp);
+  el.innerHTML =
+    '<div class="audit-icon">chain</div>' +
+    '<div class="audit-content">' +
+      '<div class="audit-action">' + entry.action + '</div>' +
+      '<div class="audit-hash">' + entry.tx_hash + '</div>' +
+      '<div class="audit-meta"><span>' + ago + '</span><span>Model: ' + entry.model + '</span></div>' +
+    '</div>' +
+    '<div class="audit-badge">' + entry.settlement + '</div>';
+  log.insertBefore(el, log.firstChild);
+}
+
+// ── Utils ──────────────────────────────────────────────────────────────────
+function fmtNum(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(2) + 'M';
+  if (n >= 10000) return Math.round(n).toLocaleString();
+  if (n >= 100) return n.toFixed(0);
+  return n.toFixed(2);
+}
+
+function fmtK(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(0) + 'K';
+  return n.toFixed(0);
+}
+
+function fmtAgo(ts) {
+  const diff = Math.floor(Date.now() / 1000) - ts;
+  if (diff < 60) return diff + 's ago';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  return Math.floor(diff / 3600) + 'h ago';
+}
+
+function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+
+// ── Start ──────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
