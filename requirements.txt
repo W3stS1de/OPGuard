@@ -1,0 +1,4 @@
+opengradient
+flask
+flask-cors
+gunicorn
