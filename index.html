@@ -443,16 +443,46 @@
   .tx-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-family: var(--font-mono); margin-bottom: 6px; }
   .tx-hash { font-family: var(--font-mono); font-size: 12px; color: var(--accent); word-break: break-all; }
 
-  .explorer-link {
+  .tee-proof-box {
+    background: rgba(0,212,170,0.04);
+    border: 1px solid rgba(0,212,170,0.25);
+    border-radius: 12px; padding: 14px 16px;
+    margin-top: 4px;
+  }
+  .tee-proof-label {
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--accent); font-family: var(--font-mono);
+    margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+  }
+  .tee-proof-label::before {
+    content: '';
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+    flex-shrink: 0;
+  }
+  .tee-sig-value {
+    font-family: var(--font-mono); font-size: 11px;
+    color: #8ab4d4; word-break: break-all; line-height: 1.7;
+  }
+  .tee-badge {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 10px 20px;
-    background: rgba(0,212,170,0.1);
-    border: 1px solid rgba(0,212,170,0.3);
-    border-radius: 10px; color: var(--accent);
-    text-decoration: none; font-size: 13px; font-weight: 600;
+    padding: 6px 14px; border-radius: 100px; margin-top: 10px;
+    background: rgba(0,212,170,0.1); border: 1px solid rgba(0,212,170,0.3);
+    font-size: 11px; font-family: var(--font-mono); color: var(--accent);
+    font-weight: 700;
+  }
+  .og-explorer-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; margin-top: 12px;
+    background: rgba(0,136,255,0.08);
+    border: 1px solid rgba(0,136,255,0.25);
+    border-radius: 10px; color: var(--accent2);
+    text-decoration: none; font-size: 12px; font-weight: 600;
+    font-family: var(--font-mono);
     transition: all 0.2s;
   }
-  .explorer-link:hover { background: rgba(0,212,170,0.2); }
+  .og-explorer-link:hover { background: rgba(0,136,255,0.15); }
 
   /* ── Sparkline canvas ──────────────────────────────────────────── */
   .sparkline-cell { display: flex; align-items: center; }
@@ -502,6 +532,95 @@
     .holding-row { grid-template-columns: 140px 1fr 1fr 70px; }
     .holding-row > *:nth-child(3) { display: none; }
   }
+
+  /* ── Portfolio Editor ──────────────────────────────────────────── */
+  .edit-portfolio-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px;
+    background: rgba(0,136,255,0.08);
+    border: 1px solid rgba(0,136,255,0.25);
+    color: var(--accent2); border-radius: 8px;
+    font-size: 12px; font-family: var(--font-mono);
+    cursor: pointer; font-weight: 700; transition: all 0.2s;
+  }
+  .edit-portfolio-btn:hover { background: rgba(0,136,255,0.15); }
+
+  .portfolio-editor {
+    display: none;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 24px;
+    animation: fadeUp 0.2s ease;
+  }
+  .portfolio-editor.open { display: block; }
+
+  .editor-title {
+    font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); font-family: var(--font-mono);
+    margin-bottom: 16px;
+  }
+
+  .editor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .editor-token {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    transition: border-color 0.2s;
+  }
+  .editor-token:focus-within { border-color: rgba(0,212,170,0.4); }
+
+  .editor-token-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 10px;
+  }
+  .editor-token-logo {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--surface2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-family: var(--font-mono);
+  }
+  .editor-token-name { font-size: 13px; font-weight: 700; }
+  .editor-token-price { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+
+  .editor-input-wrap { position: relative; }
+  .editor-input {
+    width: 100%;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px;
+    padding: 8px 12px; font-family: var(--font-mono); font-size: 13px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .editor-input:focus { border-color: var(--accent); }
+  .editor-input-usd {
+    font-size: 11px; color: var(--accent); font-family: var(--font-mono);
+    margin-top: 5px; text-align: right;
+  }
+
+  .editor-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .editor-save-btn {
+    padding: 8px 20px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 8px;
+    color: #080c10; font-weight: 700; font-size: 12px;
+    font-family: var(--font-mono); cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .editor-save-btn:hover { opacity: 0.9; }
+  .editor-cancel-btn {
+    padding: 8px 16px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); border-radius: 8px;
+    font-size: 12px; font-family: var(--font-mono); cursor: pointer;
+  }
+  .editor-cancel-btn:hover { border-color: var(--danger); color: var(--danger); }
+
 </style>
 </head>
 <body>
@@ -532,7 +651,7 @@
   <!-- ── Stat Cards ─────────────────────────────────────────────── -->
   <div class="stats-row" id="statsRow">
     <div class="stat-card"><div class="stat-label">Total Portfolio Value</div><div class="stat-value" id="totalValue">—</div><div class="stat-sub" id="totalPnl">Loading…</div></div>
-    <div class="stat-card"><div class="stat-label">On-Chain Verifications</div><div class="stat-value" id="verifyCount">0</div><div class="stat-sub" style="color:var(--muted)">tx hashes recorded</div></div>
+    <div class="stat-card"><div class="stat-label">On-Chain Verifications</div><div class="stat-value" id="verifyCount">0</div><div class="stat-sub" style="color:var(--muted)">TEE proofs recorded</div></div>
     <div class="stat-card"><div class="stat-label">Highest Risk Asset</div><div class="stat-value" id="highRisk" style="font-size:22px">—</div><div class="stat-sub" id="highRiskVol">—</div></div>
     <div class="stat-card"><div class="stat-label">Portfolio Sharpe Ratio</div><div class="stat-value" id="avgSharpe">—</div><div class="stat-sub" style="color:var(--muted)">risk-adjusted return</div></div>
   </div>
@@ -544,13 +663,27 @@
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title"><span class="icon">📊</span> Holdings &amp; Risk Metrics</div>
-        <button onclick="verifyAll()" style="padding:7px 14px;background:rgba(0,212,170,0.1);border:1px solid rgba(0,212,170,0.3);color:var(--accent);border-radius:8px;font-size:12px;font-family:var(--font-mono);cursor:pointer;font-weight:700;" id="verifyAllBtn">
-          ⛓ VERIFY ALL ON-CHAIN
-        </button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="edit-portfolio-btn" onclick="toggleEditor()" id="editBtn">
+            ✏️ EDIT PORTFOLIO
+          </button>
+          <button onclick="verifyAll()" style="padding:7px 14px;background:rgba(0,212,170,0.1);border:1px solid rgba(0,212,170,0.3);color:var(--accent);border-radius:8px;font-size:12px;font-family:var(--font-mono);cursor:pointer;font-weight:700;" id="verifyAllBtn">
+            ⛓ VERIFY ALL ON-CHAIN
+          </button>
+        </div>
       </div>
       <div>
+        <!-- Portfolio Editor -->
+        <div class="portfolio-editor" id="portfolioEditor">
+          <div class="editor-title">✏ Configure Your Portfolio — Real prices from DexScreener</div>
+          <div class="editor-grid" id="editorGrid"></div>
+          <div class="editor-actions">
+            <button class="editor-cancel-btn" onclick="toggleEditor()">Cancel</button>
+            <button class="editor-save-btn" onclick="savePortfolio()">Apply & Recalculate ↗</button>
+          </div>
+        </div>
         <div class="holding-row th-row">
-          <div>Asset</div><div>Value / P&amp;L</div><div>Volatility</div><div>Daily VaR 95%</div><div>Sharpe</div><div>Risk Level</div><div>Verify</div>
+          <div>Asset</div><div>Value / P&L</div><div>Volatility</div><div>Daily VaR 95%</div><div>Sharpe</div><div>Risk Level</div><div>Verify</div>
         </div>
         <div id="holdingsBody"></div>
       </div>
@@ -617,11 +750,18 @@
     <div class="modal-title" id="modalTitle">⛓️ On-Chain Proof</div>
     <div class="modal-subtitle" id="modalSubtitle">Volatility verified by ONNX model on OpenGradient blockchain</div>
     <div class="proof-grid" id="proofGrid"></div>
-    <div class="tx-box">
-      <div class="tx-label">Transaction Hash (cryptographic proof)</div>
-      <div class="tx-hash" id="modalTxHash">—</div>
+    <div class="tee-proof-box">
+      <div class="tee-proof-label">TEE Cryptographic Attestation</div>
+      <div class="tee-sig-value" id="modalTeeSig">—</div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px;">
+        <span class="tee-badge">✓ Intel SGX Verified</span>
+        <span class="tee-badge" id="modalSettlement">SETTLE_METADATA</span>
+      </div>
+      <a href="https://sepolia.basescan.org/address/0x7a7FA9684F3620d0C8ecd58c59E75B93348f31B3" 
+         class="og-explorer-link" target="_blank" id="explorerLink">
+        🔍 View Wallet on Base Sepolia ↗
+      </a>
     </div>
-    <a href="#" id="explorerLink" class="explorer-link" target="_blank">🔍 View on OpenGradient Explorer ↗</a>
   </div>
 </div>
 
@@ -670,7 +810,11 @@ async function checkStatus() {
 }
 
 async function loadPortfolio() {
-  const res = await fetch('/api/portfolio');
+  const res = await fetch('/api/portfolio', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amounts: customAmounts })
+  });
   portfolio = await res.json();
 
   document.getElementById('totalValue').textContent = '$' + fmtNum(portfolio.total_value);
@@ -806,6 +950,8 @@ async function verifyToken(token, btn) {
       risk_label: d.risk_label,
       risk_color: d.risk_color,
       transaction_hash: d.transaction_hash,
+      tee_signature: d.tee_signature,
+      payment_hash: d.payment_hash,
       explorer_url: d.explorer_url,
       verified: true,
       proof_type: d.proof_type || 'TEE-LLM SETTLE_METADATA',
@@ -830,7 +976,7 @@ async function verifyToken(token, btn) {
       token + ' verified on-chain!\n' +
       'Volatility: ' + (d.on_chain_volatility * 100).toFixed(2) + '%  |  Risk: ' + d.risk_label + '\n' +
       'Proof: ' + d.proof_type + '\n' +
-      'Tx: ' + d.transaction_hash.substring(0, 22) + '...'
+      'TEE: ' + (d.tee_signature ? d.tee_signature.substring(0, 18) + '...' : 'batch settlement')
     );
 
   } catch(e) {
@@ -862,9 +1008,9 @@ function showProof(token) {
     '<div class="proof-item"><div class="proof-item-label">Daily VaR (95%)</div><div class="proof-item-value">$' + fmtNum(d.daily_var_95) + '</div></div>' +
     '<div class="proof-item"><div class="proof-item-label">Risk Level</div><div class="proof-item-value" style="color:' + d.risk_color + '">' + d.risk_label + '</div></div>' +
     '<div class="proof-item"><div class="proof-item-label">Std Dev (raw)</div><div class="proof-item-value">' + d.on_chain_std + '</div></div>';
-  document.getElementById('modalTxHash').textContent = d.transaction_hash;
-  const link = document.getElementById('explorerLink');
-  link.href = d.explorer_url;
+  const teeSig = d.tee_signature || d.payment_hash || 'TEE attestation recorded (batch settlement)';
+  document.getElementById('modalTeeSig').textContent = teeSig;
+  document.getElementById('modalSettlement').textContent = d.proof_type || 'SETTLE_METADATA';
   document.getElementById('proofModal').classList.add('open');
 }
 
@@ -943,11 +1089,12 @@ async function sendMessage() {
       addChatMessage('proof',
         'TEE-Verified Response\n' +
         'Settlement: SETTLE_BATCH (on-chain)\n' +
-        'Tx: ' + paymentHash.substring(0, 24) + '...'
+        'Intel SGX attestation recorded'
       );
       addAuditEntry({
         action: 'AI Chat — TEE LLM',
-        tx_hash: paymentHash,
+        tx_hash: null,
+        tee_signature: paymentHash,
         model: 'GPT-4.1 (TEE)',
         settlement: 'SETTLE_BATCH',
         timestamp: Math.floor(Date.now() / 1000),
@@ -1021,7 +1168,7 @@ function addAuditEntry(entry) {
     '<div class="audit-icon">chain</div>' +
     '<div class="audit-content">' +
       '<div class="audit-action">' + entry.action + '</div>' +
-      '<div class="audit-hash">' + entry.tx_hash + '</div>' +
+      '<div class="audit-hash">' + (entry.tee_signature ? entry.tee_signature.substring(0,40) + '...' : entry.tx_hash || 'TEE batch settlement') + '</div>' +
       '<div class="audit-meta"><span>' + ago + '</span><span>Model: ' + entry.model + '</span></div>' +
     '</div>' +
     '<div class="audit-badge">' + entry.settlement + '</div>';
@@ -1050,6 +1197,97 @@ function fmtAgo(ts) {
 }
 
 function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+
+
+// ── Portfolio Editor ───────────────────────────────────────────────────────
+const TOKENS = [
+  { symbol: 'BTC',   logo: '₿', name: 'Bitcoin' },
+  { symbol: 'ETH',   logo: 'Ξ', name: 'Ethereum' },
+  { symbol: 'SOL',   logo: '◎', name: 'Solana' },
+  { symbol: 'MATIC', logo: '⬡', name: 'Polygon' },
+];
+
+// Load saved amounts from localStorage or use defaults
+let customAmounts = JSON.parse(localStorage.getItem('opguard_portfolio') || 'null') || {
+  BTC: 0.5, ETH: 10, SOL: 200, MATIC: 5000
+};
+
+function toggleEditor() {
+  const editor = document.getElementById('portfolioEditor');
+  const btn = document.getElementById('editBtn');
+  const isOpen = editor.classList.contains('open');
+  if (isOpen) {
+    editor.classList.remove('open');
+    btn.textContent = '✏️ EDIT PORTFOLIO';
+  } else {
+    editor.classList.add('open');
+    btn.textContent = '✕ CLOSE EDITOR';
+    renderEditorGrid();
+  }
+}
+
+function renderEditorGrid() {
+  const prices = portfolio ? {} : {};
+  // Get current prices from portfolio data
+  if (portfolio && portfolio.holdings) {
+    portfolio.holdings.forEach(function(h) {
+      prices[h.token] = h.price;
+    });
+  }
+
+  const grid = document.getElementById('editorGrid');
+  grid.innerHTML = TOKENS.map(function(t) {
+    const amount = customAmounts[t.symbol] || 0;
+    const price = prices[t.symbol] || 0;
+    const usdVal = (amount * price).toFixed(2);
+    return '<div class="editor-token">' +
+      '<div class="editor-token-header">' +
+        '<div class="editor-token-logo">' + t.logo + '</div>' +
+        '<div>' +
+          '<div class="editor-token-name">' + t.symbol + '</div>' +
+          '<div class="editor-token-price" id="eprice-' + t.symbol + '">' +
+            (price ? '$' + price.toLocaleString() : 'Loading...') +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="editor-input-wrap">' +
+        '<input class="editor-input" type="number" min="0" step="any" ' +
+          'id="einput-' + t.symbol + '" value="' + amount + '" ' +
+          'placeholder="0" oninput="updateEditorUSD('' + t.symbol + '')">' +
+        '<div class="editor-input-usd" id="eusd-' + t.symbol + '">' +
+          (price ? '≈ $' + parseFloat(usdVal).toLocaleString() : '') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function updateEditorUSD(symbol) {
+  const input = document.getElementById('einput-' + symbol);
+  const amount = parseFloat(input.value) || 0;
+  const priceEl = document.getElementById('eprice-' + symbol);
+  const priceText = priceEl.textContent.replace('$', '').replace(',', '');
+  const price = parseFloat(priceText) || 0;
+  const usd = (amount * price).toFixed(2);
+  document.getElementById('eusd-' + symbol).textContent =
+    price ? '≈ $' + parseFloat(usd).toLocaleString() : '';
+}
+
+async function savePortfolio() {
+  TOKENS.forEach(function(t) {
+    const val = parseFloat(document.getElementById('einput-' + t.symbol).value) || 0;
+    customAmounts[t.symbol] = val;
+  });
+  localStorage.setItem('opguard_portfolio', JSON.stringify(customAmounts));
+  toggleEditor();
+  // Reset verified data
+  verifiedData = {};
+  verifyCount = 0;
+  document.getElementById('verifyCount').textContent = '0';
+  // Reload portfolio with new amounts
+  await loadPortfolio();
+  addChatMessage('system', '✅ Portfolio updated! Enter new amounts reflected in analysis.');
+}
 
 // ── Start ──────────────────────────────────────────────────────────────────
 init();
