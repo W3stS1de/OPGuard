@@ -135,12 +135,8 @@ def get_client() -> Optional[og.Client]:
             _init_done = True
             return None
         try:
-            # Support custom LLM URL for Railway (use IP directly if domain fails)
-            llm_url = os.environ.get("OG_LLM_URL")
-            if llm_url:
-                _client = og.Client(private_key=private_key, llm_server_url=llm_url)
-            else:
-                _client = og.Client(private_key=private_key)
+            _client = og.init(private_key=private_key)
+            _client.llm.ensure_opg_approval(opg_amount=5)
             _init_done = True
         except Exception as e:
             _init_error = str(e)
@@ -236,15 +232,25 @@ def api_status():
         "key_set": bool(os.environ.get("OG_PRIVATE_KEY")),
     })
 
-@app.route("/api/portfolio")
+@app.route("/api/portfolio", methods=["GET", "POST"])
 def api_portfolio():
+    # Accept custom amounts from frontend
+    custom_amounts = {}
+    if request.method == "POST":
+        body = request.get_json(silent=True) or {}
+        custom_amounts = body.get("amounts", {})
+
     result = []
     total_value, total_cost = 0.0, 0.0
     live = get_prices()
     for token, data in PORTFOLIO.items():
         price = live[token]
-        position_value = data["amount"] * price
-        cost_basis = data["amount"] * data["avg_cost"]
+        # Use custom amount if provided, else default
+        amount = float(custom_amounts.get(token, data["amount"]))
+        if amount <= 0:
+            continue
+        position_value = amount * price
+        cost_basis = amount * data["avg_cost"]
         pnl = position_value - cost_basis
         pnl_pct = (pnl / cost_basis) * 100
         prices = PRICE_SERIES[token]
@@ -254,7 +260,7 @@ def api_portfolio():
         total_cost += cost_basis
         result.append({
             "token": token, "logo": data["logo"],
-            "amount": data["amount"], "avg_cost": data["avg_cost"],
+            "amount": amount, "avg_cost": data["avg_cost"], "price": price,
             "current_price": price,
             "position_value": round(position_value, 2),
             "cost_basis": round(cost_basis, 2),
