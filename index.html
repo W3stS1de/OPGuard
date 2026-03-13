@@ -1208,9 +1208,12 @@ const TOKENS = [
 ];
 
 // Load saved amounts from localStorage or use defaults
-let customAmounts = JSON.parse(localStorage.getItem('opguard_portfolio') || 'null') || {
-  BTC: 0.5, ETH: 10, SOL: 200, MATIC: 5000
-};
+const DEFAULT_AMOUNTS = { BTC: 0.5, ETH: 10, SOL: 200, MATIC: 5000 };
+let savedAmounts = JSON.parse(localStorage.getItem('opguard_portfolio') || 'null');
+// Use defaults if nothing saved or all values are zero
+let customAmounts = savedAmounts && Object.values(savedAmounts).some(v => v > 0)
+  ? savedAmounts
+  : Object.assign({}, DEFAULT_AMOUNTS);
 
 function toggleEditor() {
   const editor = document.getElementById('portfolioEditor');
@@ -1227,8 +1230,7 @@ function toggleEditor() {
 }
 
 function renderEditorGrid() {
-  const prices = portfolio ? {} : {};
-  // Get current prices from portfolio data
+  const prices = {};
   if (portfolio && portfolio.holdings) {
     portfolio.holdings.forEach(function(h) {
       prices[h.token] = h.price;
