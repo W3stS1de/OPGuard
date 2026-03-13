@@ -1255,7 +1255,7 @@ function renderEditorGrid() {
       '<div class="editor-input-wrap">' +
         '<input class="editor-input" type="number" min="0" step="any" ' +
           'id="einput-' + t.symbol + '" value="' + amount + '" ' +
-          'placeholder="0" oninput="updateEditorUSD('' + t.symbol + '')">' +
+          'placeholder="0" oninput="updateEditorUSD(\'' + t.symbol + '\')">' +
         '<div class="editor-input-usd" id="eusd-' + t.symbol + '">' +
           (price ? '≈ $' + parseFloat(usdVal).toLocaleString() : '') +
         '</div>' +
