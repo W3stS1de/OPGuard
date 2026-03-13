@@ -118,13 +118,13 @@ app = Flask(__name__, static_folder=BASE_DIR)
 CORS(app)
 
 # ── OpenGradient client (lazy init) ──────────────────────────────────────────
-_client: Optional[og.Client] = None
+_client = None
 _init_lock = threading.Lock()
 _init_error: Optional[str] = None
 _init_done = False
 
 
-def get_client() -> Optional[og.Client]:
+def get_client():
     global _client, _init_done, _init_error
     with _init_lock:
         if _init_done:
@@ -137,9 +137,9 @@ def get_client() -> Optional[og.Client]:
         try:
             llm_url = os.environ.get("OG_LLM_URL")
             if llm_url:
-                _client = og.Client(private_key=private_key, llm_server_url=llm_url)
+                _client = og.init(private_key=private_key, llm_server_url=llm_url)
             else:
-                _client = og.Client(private_key=private_key)
+                _client = og.init(private_key=private_key)
             _init_done = True
         except Exception as e:
             _init_error = str(e)
