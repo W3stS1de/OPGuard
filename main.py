@@ -135,8 +135,11 @@ def get_client() -> Optional[og.Client]:
             _init_done = True
             return None
         try:
-            _client = og.init(private_key=private_key)
-            _client.llm.ensure_opg_approval(opg_amount=5)
+            llm_url = os.environ.get("OG_LLM_URL")
+            if llm_url:
+                _client = og.Client(private_key=private_key, llm_server_url=llm_url)
+            else:
+                _client = og.Client(private_key=private_key)
             _init_done = True
         except Exception as e:
             _init_error = str(e)
