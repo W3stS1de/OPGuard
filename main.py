@@ -137,9 +137,9 @@ def get_client():
         try:
             llm_url = os.environ.get("OG_LLM_URL")
             if llm_url:
-                _client = og.init(private_key=private_key, llm_server_url=llm_url)
+                _client = og.LLM(private_key=private_key, llm_server_url=llm_url)
             else:
-                _client = og.init(private_key=private_key)
+                _client = og.LLM(private_key=private_key)
             _init_done = True
         except Exception as e:
             _init_error = str(e)
@@ -288,7 +288,7 @@ def api_portfolio():
 def api_verify_onchain(token: str):
     """
     TEE-Verified risk assessment with SETTLE_METADATA — records full data on-chain.
-    Uses client.llm.chat() which is the working on-chain proof mechanism per docs.
+    Uses client.chat() which is the working on-chain proof mechanism per docs.
     Alpha Testnet on-chain ML inference is deprecated/unavailable per OpenGradient docs.
     """
     token = token.upper()
@@ -308,7 +308,7 @@ def api_verify_onchain(token: str):
     try:
         # SETTLE_METADATA records full input + output on-chain — maximum transparency
         # This is the correct on-chain proof mechanism per current OpenGradient docs
-        result = client.llm.chat(
+        result = client.chat(
             model=og.TEE_LLM.GPT_4_1_2025_04_14,
             messages=[{
                 "role": "user",
@@ -419,7 +419,7 @@ def api_analyze():
 
     def generate():
         try:
-            stream = client.llm.chat(
+            stream = client.chat(
                 model=og.TEE_LLM.GPT_4_1_2025_04_14,
                 messages=[
                     {"role": "system", "content": system_prompt},
