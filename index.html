@@ -755,11 +755,11 @@
       <div class="tee-sig-value" id="modalTeeSig">—</div>
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px;">
         <span class="tee-badge">✓ Intel SGX Verified</span>
-        <span class="tee-badge" id="modalSettlement">SETTLE_METADATA</span>
+        <span class="tee-badge" id="modalSettlement">INDIVIDUAL_FULL</span>
       </div>
-      <a href="https://sepolia.basescan.org/address/0x7a7FA9684F3620d0C8ecd58c59E75B93348f31B3" 
+      <a href="https://explorer.opengradient.ai/address/0xf610BCAcA1af9d624B2F43334DD18aE661AE2491" 
          class="og-explorer-link" target="_blank" id="explorerLink">
-        🔍 View Wallet on Base Sepolia ↗
+        🔍 View On-Chain Proofs on OpenGradient ↗
       </a>
     </div>
   </div>
@@ -1096,7 +1096,7 @@ async function sendMessage() {
         tx_hash: null,
         tee_signature: paymentHash,
         model: 'GPT-4.1 (TEE)',
-        settlement: 'SETTLE_BATCH',
+        settlement: 'BATCH_HASHED',
         timestamp: Math.floor(Date.now() / 1000),
       });
     }
@@ -1268,7 +1268,7 @@ function updateEditorUSD(symbol) {
   const input = document.getElementById('einput-' + symbol);
   const amount = parseFloat(input.value) || 0;
   const priceEl = document.getElementById('eprice-' + symbol);
-  const priceText = priceEl.textContent.replace('$', '').replace(',', '');
+  const priceText = priceEl.textContent.replace('$', '').replace(/,/g, '');
   const price = parseFloat(priceText) || 0;
   const usd = (amount * price).toFixed(2);
   document.getElementById('eusd-' + symbol).textContent =
