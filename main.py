@@ -323,7 +323,7 @@ def api_verify_onchain(token: str):
             }],
             max_tokens=20,
             temperature=0.0,
-            x402_settlement_mode=og.x402SettlementMode.SETTLE_METADATA,
+            x402_settlement_mode=og.x402SettlementMode.INDIVIDUAL_FULL,
         )
 
         # Get real transaction hash from SDK result
@@ -352,7 +352,7 @@ def api_verify_onchain(token: str):
             tx_hash=getattr(result, 'transaction_hash', None),
             payment_hash=pay_hash,
             model="GPT-4.1 (TEE)",
-            settlement="SETTLE_METADATA",
+            settlement="INDIVIDUAL_FULL",
             tee_signature=tee_sig,
         )
 
@@ -368,7 +368,7 @@ def api_verify_onchain(token: str):
             "tee_signature": tee_sig,
             "payment_hash": pay_hash,
             "verified": True,
-            "proof_type": "TEE-LLM SETTLE_METADATA",
+            "proof_type": "TEE-LLM INDIVIDUAL_FULL",
             "timestamp": int(time.time()),
         })
 
@@ -426,13 +426,12 @@ def api_analyze():
                     {"role": "user", "content": user_msg},
                 ],
                 max_tokens=900, temperature=0.2, stream=True,
-                x402_settlement_mode=og.x402SettlementMode.SETTLE_BATCH,
+                x402_settlement_mode=og.x402SettlementMode.BATCH_HASHED,
             )
             payment_hash = None
             for chunk in stream:
-                delta = chunk.choices[0].delta
-                if delta.content:
-                    yield f"data: {json.dumps({'type': 'token', 'content': delta.content})}\n\n"
+                if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
+                    yield f"data: {json.dumps({'type': 'token', 'content': chunk.choices[0].delta.content})}\n\n"
                 if chunk.is_final:
                     payment_hash = getattr(chunk, "payment_hash", None)
                     tx_hash_chunk = getattr(chunk, "transaction_hash", None)
@@ -441,7 +440,7 @@ def api_analyze():
                         tx_hash=tx_hash_chunk,
                         payment_hash=payment_hash,
                         model="GPT-4.1 (TEE)",
-                        settlement="SETTLE_BATCH",
+                        settlement="BATCH_HASHED",
                     )
                     yield f"data: {json.dumps({'type': 'done', 'payment_hash': payment_hash})}\n\n"
         except Exception as e:
