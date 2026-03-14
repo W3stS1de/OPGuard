@@ -117,6 +117,16 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, static_folder=BASE_DIR)
 CORS(app)
 
+# ── Async helper ─────────────────────────────────────────────────────────────
+def run_async(coro):
+    """Run async coroutine in a new event loop — safe for gunicorn sync workers."""
+    import asyncio
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+
 # ── OpenGradient client (lazy init) ──────────────────────────────────────────
 _client = None
 _init_lock = threading.Lock()
@@ -308,8 +318,7 @@ def api_verify_onchain(token: str):
     try:
         # SETTLE_METADATA records full input + output on-chain — maximum transparency
         # This is the correct on-chain proof mechanism per current OpenGradient docs
-        import asyncio
-        result = asyncio.run(client.chat(
+        result = run_async(client.chat(
             model=og.TEE_LLM.GPT_4_1_2025_04_14,
             messages=[{
                 "role": "user",
@@ -419,8 +428,7 @@ def api_analyze():
     )
 
     try:
-        import asyncio
-        result = asyncio.run(client.chat(
+        result = run_async(client.chat(
             model=og.TEE_LLM.GPT_4_1_2025_04_14,
             messages=[
                 {"role": "system", "content": system_prompt},
