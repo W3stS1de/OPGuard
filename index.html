@@ -1116,6 +1116,7 @@ async function loadAuditLog() {
 
 function addAuditEntry(entry) {
   const log = document.getElementById('auditLog');
+  if (!log) return;
   const el = document.createElement('div');
   el.className = 'audit-entry';
   const ago = fmtAgo(entry.timestamp);
