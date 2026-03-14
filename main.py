@@ -127,35 +127,30 @@ def run_async(coro):
     finally:
         loop.close()
 
-# ── OpenGradient client (lazy init) ──────────────────────────────────────────
-_client = None
-_init_lock = threading.Lock()
+# ── OpenGradient client ───────────────────────────────────────────────────────
 _init_error: Optional[str] = None
-_init_done = False
+_private_key: Optional[str] = None
+_llm_url: Optional[str] = None
 
+def _load_config():
+    global _init_error, _private_key, _llm_url
+    _private_key = os.environ.get("OG_PRIVATE_KEY")
+    _llm_url = os.environ.get("OG_LLM_URL")
+    if not _private_key:
+        _init_error = "OG_PRIVATE_KEY environment variable not set"
+
+_load_config()
 
 def get_client():
-    global _client, _init_done, _init_error
-    with _init_lock:
-        if _init_done:
-            return _client
-        private_key = os.environ.get("OG_PRIVATE_KEY")
-        if not private_key:
-            _init_error = "OG_PRIVATE_KEY environment variable not set"
-            _init_done = True
-            return None
-        try:
-            llm_url = os.environ.get("OG_LLM_URL")
-            if llm_url:
-                _client = og.LLM(private_key=private_key, llm_server_url=llm_url)
-            else:
-                _client = og.LLM(private_key=private_key)
-            _init_done = True
-        except Exception as e:
-            _init_error = str(e)
-            _init_done = True
-            return None
-    return _client
+    """Create a fresh LLM client per request — avoids event loop issues with gunicorn."""
+    if not _private_key:
+        return None
+    try:
+        if _llm_url:
+            return og.LLM(private_key=_private_key, llm_server_url=_llm_url)
+        return og.LLM(private_key=_private_key)
+    except Exception as e:
+        return None
 
 
 # ── Portfolio data ────────────────────────────────────────────────────────────
