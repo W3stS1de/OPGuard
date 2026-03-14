@@ -418,40 +418,25 @@ def api_analyze():
         "3) Rebalancing recommendations with target %s, 4) Top 3 risk metrics to monitor."
     )
 
-    def generate():
-        try:
-            import asyncio
-            result = asyncio.run(client.chat(
-                model=og.TEE_LLM.GPT_4_1_2025_04_14,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_msg},
-                ],
-                max_tokens=900, temperature=0.2, stream=False,
-                x402_settlement_mode=og.x402SettlementMode.BATCH_HASHED,
-            ))
-            text = getattr(result, "chat_output", None) or getattr(result, "completion_output", "") or ""
-            payment_hash = getattr(result, "payment_hash", None)
-            tee_sig = getattr(result, "tee_signature", None)
-            for word in text.split(" "):
-                yield f"data: {json.dumps({'type': 'token', 'content': word + ' '})}\n\n"
-            add_audit_entry(
-                action="Portfolio AI Analysis — TEE LLM",
-                tx_hash=None,
-                payment_hash=payment_hash,
-                model="GPT-4.1 (TEE)",
-                settlement="BATCH_HASHED",
-                tee_signature=tee_sig,
-            )
-            yield f"data: {json.dumps({'type': 'done', 'payment_hash': payment_hash})}\n\n"
-        except Exception as e:
-            err_msg = str(e)
-            if "payment" in err_msg.lower() or "Payment" in err_msg:
-                err_msg = "OPG balance low — get free tokens at faucet.opengradient.ai then retry."
-            yield f"data: {json.dumps({'type': 'error', 'message': err_msg})}\n\n"
-
-    return Response(generate(), mimetype="text/event-stream",
-                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+    try:
+        import asyncio
+        result = asyncio.run(client.chat(
+            model=og.TEE_LLM.GPT_4_1_2025_04_14,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_msg},
+            ],
+            max_tokens=900, temperature=0.2, stream=False,
+            x402_settlement_mode=og.x402SettlementMode.BATCH_HASHED,
+        ))
+        text = getattr(result, "chat_output", None) or getattr(result, "completion_output", "") or ""
+        tee_sig = getattr(result, "tee_signature", None)
+        return jsonify({
+            "text": text,
+            "tee_signature": tee_sig,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ── Real audit log (in-memory) ────────────────────────────────────────────────
 _audit_log: List[Dict] = []
