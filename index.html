@@ -731,14 +731,7 @@
       </div>
     </div>
 
-    <!-- Audit log -->
-    <div class="panel audit-panel">
-      <div class="panel-header">
-        <div class="panel-title"><span class="icon">📋</span> On-Chain Audit Log</div>
-        <span style="font-size:11px;font-family:var(--font-mono);color:var(--muted);">immutable proofs</span>
-      </div>
-      <div id="auditLog"></div>
-    </div>
+
 
   </div>
 </div>
@@ -757,10 +750,7 @@
         <span class="tee-badge">✓ Intel SGX Verified</span>
         <span class="tee-badge" id="modalSettlement">INDIVIDUAL_FULL</span>
       </div>
-      <a href="https://explorer.opengradient.ai/address/0xf610BCAcA1af9d624B2F43334DD18aE661AE2491" 
-         class="og-explorer-link" target="_blank" id="explorerLink">
-        🔍 View On-Chain Proofs on OpenGradient ↗
-      </a>
+
     </div>
   </div>
 </div>
@@ -787,7 +777,6 @@ const NETWORKS = {
 async function init() {
   await checkStatus();
   await loadPortfolio();
-  await loadAuditLog();
 }
 
 async function checkStatus() {
@@ -1053,52 +1042,18 @@ async function sendMessage() {
       throw new Error(err.error || 'Request failed: ' + res.status);
     }
 
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
     removeTypingIndicator(typingId);
-    const msgId = 'msg-' + Date.now();
-    const msgEl = addChatMessage('ai', '', msgId);
+    addChatMessage('ai', data.text || 'No response');
 
-    // SSE streaming
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let paymentHash = null;
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        try {
-          const ev = JSON.parse(line.slice(6));
-          if (ev.type === 'token') {
-            msgEl.textContent += ev.content;
-            scrollChat();
-          } else if (ev.type === 'done') {
-            paymentHash = ev.payment_hash;
-          } else if (ev.type === 'error') {
-            throw new Error(ev.message);
-          }
-        } catch(parseErr) {}
-      }
-    }
-
-    if (paymentHash) {
+    if (data.tee_signature) {
       addChatMessage('proof',
         'TEE-Verified Response\n' +
-        'Settlement: SETTLE_BATCH (on-chain)\n' +
-        'Intel SGX attestation recorded'
+        'Intel SGX attestation recorded\n' +
+        'Signature: ' + data.tee_signature.substring(0, 40) + '...'
       );
-      addAuditEntry({
-        action: 'AI Chat — TEE LLM',
-        tx_hash: null,
-        tee_signature: paymentHash,
-        model: 'GPT-4.1 (TEE)',
-        settlement: 'BATCH_HASHED',
-        timestamp: Math.floor(Date.now() / 1000),
-      });
     }
 
   } catch(e) {
