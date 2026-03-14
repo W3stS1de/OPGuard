@@ -1210,8 +1210,8 @@ const TOKENS = [
 // Load saved amounts from localStorage or use defaults
 const DEFAULT_AMOUNTS = { BTC: 0.5, ETH: 10, SOL: 200, MATIC: 5000 };
 let savedAmounts = JSON.parse(localStorage.getItem('opguard_portfolio') || 'null');
-// Use defaults if nothing saved or all values are zero
-let customAmounts = savedAmounts && Object.values(savedAmounts).some(v => v > 0)
+// Use defaults if nothing saved, all values are zero, or amounts seem wrong (BTC > 10)
+let customAmounts = (savedAmounts && Object.values(savedAmounts).some(v => v > 0) && (savedAmounts.BTC || 0) <= 10)
   ? savedAmounts
   : Object.assign({}, DEFAULT_AMOUNTS);
 
@@ -1248,7 +1248,7 @@ function renderEditorGrid() {
         '<div>' +
           '<div class="editor-token-name">' + t.symbol + '</div>' +
           '<div class="editor-token-price" id="eprice-' + t.symbol + '">' +
-            (price ? '$' + price.toLocaleString() : 'Loading...') +
+            (price ? '$' + price.toFixed(2) : 'Loading...') +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -1257,7 +1257,7 @@ function renderEditorGrid() {
           'id="einput-' + t.symbol + '" value="' + amount + '" ' +
           'placeholder="0" oninput="updateEditorUSD(\'' + t.symbol + '\')">' +
         '<div class="editor-input-usd" id="eusd-' + t.symbol + '">' +
-          (price ? '≈ $' + parseFloat(usdVal).toLocaleString() : '') +
+          (price ? '≈ $' + parseFloat(usdVal).toFixed(2) : '') +
         '</div>' +
       '</div>' +
     '</div>';
@@ -1268,11 +1268,11 @@ function updateEditorUSD(symbol) {
   const input = document.getElementById('einput-' + symbol);
   const amount = parseFloat(input.value) || 0;
   const priceEl = document.getElementById('eprice-' + symbol);
-  const priceText = priceEl.textContent.replace('$', '').replace(/,/g, '');
+  const priceText = priceEl.textContent.replace('$', '').replace(/[^0-9.]/g, '');
   const price = parseFloat(priceText) || 0;
   const usd = (amount * price).toFixed(2);
   document.getElementById('eusd-' + symbol).textContent =
-    price ? '≈ $' + parseFloat(usd).toLocaleString() : '';
+    price ? '≈ $' + parseFloat(usd).toFixed(2) : '';
 }
 
 async function savePortfolio() {
