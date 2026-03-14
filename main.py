@@ -308,7 +308,8 @@ def api_verify_onchain(token: str):
     try:
         # SETTLE_METADATA records full input + output on-chain — maximum transparency
         # This is the correct on-chain proof mechanism per current OpenGradient docs
-        result = client.chat(
+        import asyncio
+        result = asyncio.run(client.chat(
             model=og.TEE_LLM.GPT_4_1_2025_04_14,
             messages=[{
                 "role": "user",
@@ -324,7 +325,7 @@ def api_verify_onchain(token: str):
             max_tokens=20,
             temperature=0.0,
             x402_settlement_mode=og.x402SettlementMode.INDIVIDUAL_FULL,
-        )
+        ))
 
         # Get real transaction hash from SDK result
         print(f"VERIFY result attrs: {[a for a in dir(result) if not a.startswith('_')]}")
