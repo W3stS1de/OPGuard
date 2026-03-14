@@ -419,30 +419,30 @@ def api_analyze():
 
     def generate():
         try:
-            stream = client.chat(
+            import asyncio
+            result = asyncio.run(client.chat(
                 model=og.TEE_LLM.GPT_4_1_2025_04_14,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_msg},
                 ],
-                max_tokens=900, temperature=0.2, stream=True,
+                max_tokens=900, temperature=0.2, stream=False,
                 x402_settlement_mode=og.x402SettlementMode.BATCH_HASHED,
+            ))
+            text = getattr(result, "chat_output", None) or getattr(result, "completion_output", "") or ""
+            payment_hash = getattr(result, "payment_hash", None)
+            tee_sig = getattr(result, "tee_signature", None)
+            for word in text.split(" "):
+                yield f"data: {json.dumps({'type': 'token', 'content': word + ' '})}\n\n"
+            add_audit_entry(
+                action="Portfolio AI Analysis — TEE LLM",
+                tx_hash=None,
+                payment_hash=payment_hash,
+                model="GPT-4.1 (TEE)",
+                settlement="BATCH_HASHED",
+                tee_signature=tee_sig,
             )
-            payment_hash = None
-            for chunk in stream:
-                if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
-                    yield f"data: {json.dumps({'type': 'token', 'content': chunk.choices[0].delta.content})}\n\n"
-                if chunk.is_final:
-                    payment_hash = getattr(chunk, "payment_hash", None)
-                    tx_hash_chunk = getattr(chunk, "transaction_hash", None)
-                    add_audit_entry(
-                        action="Portfolio AI Analysis — TEE LLM",
-                        tx_hash=tx_hash_chunk,
-                        payment_hash=payment_hash,
-                        model="GPT-4.1 (TEE)",
-                        settlement="BATCH_HASHED",
-                    )
-                    yield f"data: {json.dumps({'type': 'done', 'payment_hash': payment_hash})}\n\n"
+            yield f"data: {json.dumps({'type': 'done', 'payment_hash': payment_hash})}\n\n"
         except Exception as e:
             err_msg = str(e)
             if "payment" in err_msg.lower() or "Payment" in err_msg:
