@@ -432,7 +432,13 @@ def api_analyze():
             max_tokens=900, temperature=0.2, stream=False,
             x402_settlement_mode=og.x402SettlementMode.BATCH_HASHED,
         ))
-        text = getattr(result, "chat_output", None) or getattr(result, "completion_output", "") or ""
+        raw = getattr(result, "chat_output", None)
+        if isinstance(raw, dict):
+            text = raw.get("content", "")
+        elif isinstance(raw, str):
+            text = raw
+        else:
+            text = getattr(result, "completion_output", "") or ""
         tee_sig = getattr(result, "tee_signature", None)
         return jsonify({
             "text": text,
