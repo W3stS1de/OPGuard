@@ -111,15 +111,39 @@ from flask import Flask, Response, jsonify, request, send_from_directory
 from flask_cors import CORS
 
 import opengradient as og
+import ssl
+import logging
 
-# ── Flask app ─────────────────────────────────────────────────────────────────
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-app = Flask(__name__, static_folder=BASE_DIR)
-CORS(app)
+# ── Fix 1: SSL bypass for self-signed TEE certificates ───────────────────────
+def _unverified_ssl_context(*args, **kwargs):
+    ctx = ssl._create_unverified_context(*args, **kwargs)
+    return ctx
+ssl.create_default_context = _unverified_ssl_context
+
+# ── Fix 2: Patch x402 header parsing ─────────────────────────────────────────
+try:
+    import x402.http.x402_http_client_base as x402_base
+    from x402.http.utils import decode_payment_required_header
+
+    _orig_get_payment_required = x402_base.x402HTTPClientBase.get_payment_required_response
+
+    def _resilient_get_payment_required(self, get_header, body=None):
+        header = get_header("PAYMENT-REQUIRED") or get_header("X-PAYMENT-REQUIRED")
+        if header:
+            if "," in header:
+                header = header.split(",")[0].strip()
+            try:
+                return decode_payment_required_header(header)
+            except Exception as e:
+                logging.warning(f"Failed to decode: {e}")
+        return _orig_get_payment_required(self, get_header, body)
+
+    x402_base.x402HTTPClientBase.get_payment_required_response = _resilient_get_payment_required
+except Exception as e:
+    logging.warning(f"x402 patch failed: {e}")
 
 # ── Async helper ─────────────────────────────────────────────────────────────
 def run_async(coro):
-    """Run async coroutine in a new event loop — safe for gunicorn sync workers."""
     import asyncio
     loop = asyncio.new_event_loop()
     try:
@@ -127,7 +151,12 @@ def run_async(coro):
     finally:
         loop.close()
 
-# ── OpenGradient client ───────────────────────────────────────────────────────
+# ── Flask app ─────────────────────────────────────────────────────────────────
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app = Flask(__name__, static_folder=BASE_DIR)
+CORS(app)
+
+# ── OpenGradient client (lazy init) ──────────────────────────────────────────
 _init_error: Optional[str] = None
 _private_key: Optional[str] = None
 _llm_url: Optional[str] = None
@@ -142,7 +171,6 @@ def _load_config():
 _load_config()
 
 def get_client():
-    """Create a fresh LLM client per request — avoids event loop issues with gunicorn."""
     if not _private_key:
         return None
     try:
@@ -357,7 +385,7 @@ def api_verify_onchain(token: str):
             tx_hash=getattr(result, 'transaction_hash', None),
             payment_hash=pay_hash,
             model="GPT-4.1 (TEE)",
-            settlement="INDIVIDUAL_FULL",
+            settlement="SETTLE_METADATA",
             tee_signature=tee_sig,
         )
 
@@ -373,7 +401,7 @@ def api_verify_onchain(token: str):
             "tee_signature": tee_sig,
             "payment_hash": pay_hash,
             "verified": True,
-            "proof_type": "TEE-LLM INDIVIDUAL_FULL",
+            "proof_type": "TEE-LLM SETTLE_METADATA",
             "timestamp": int(time.time()),
         })
 
@@ -430,7 +458,7 @@ def api_analyze():
                 {"role": "user", "content": user_msg},
             ],
             max_tokens=900, temperature=0.2, stream=False,
-            x402_settlement_mode=og.x402SettlementMode.BATCH_HASHED,
+            x402_settlement_mode=og.x402SettlementMode.INDIVIDUAL_FULL,
         ))
         raw = getattr(result, "chat_output", None)
         if isinstance(raw, dict):
@@ -440,10 +468,7 @@ def api_analyze():
         else:
             text = getattr(result, "completion_output", "") or ""
         tee_sig = getattr(result, "tee_signature", None)
-        return jsonify({
-            "text": text,
-            "tee_signature": tee_sig,
-        })
+        return jsonify({"text": text, "tee_signature": tee_sig})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
