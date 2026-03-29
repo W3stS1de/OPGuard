@@ -170,14 +170,29 @@ def _load_config():
 
 _load_config()
 
+_approval_done = False
+_approval_lock = threading.Lock()
+
 def get_client():
+    global _approval_done
     if not _private_key:
         return None
     try:
         if _llm_url:
-            return og.LLM(private_key=_private_key, llm_server_url=_llm_url)
-        return og.LLM(private_key=_private_key)
+            client = og.LLM(private_key=_private_key, llm_server_url=_llm_url)
+        else:
+            client = og.LLM(private_key=_private_key)
+        with _approval_lock:
+            if not _approval_done:
+                try:
+                    client.ensure_opg_approval(opg_amount=5)
+                    _approval_done = True
+                    print("Permit2 approval done")
+                except Exception as e:
+                    print(f"Permit2 approval warning: {e}")
+        return client
     except Exception as e:
+        print(f"Client init error: {e}")
         return None
 
 
